@@ -1,6 +1,6 @@
 from typing import Optional, Any
 import json
-from worker import run, TestResult
+from .worker import run, TestResult
 
 
 def do_gradescope(
