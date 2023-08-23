@@ -4,7 +4,11 @@ from .worker import run, TestResult
 
 
 def do_gradescope(
-    filenames: list[str], outfile: str, allOrNothing: Optional[str] = None
+    filenames: list[str],
+    outfile: str,
+    allOrNothing: Optional[float],
+    minutes_late: float,
+    previous_score: float,
 ) -> None:
     all: list[tuple[dict[str, Any], bool, TestResult]] = run(
         filenames, False, False
@@ -30,14 +34,23 @@ def do_gradescope(
         gradescope["tests"].append(gradescope_test)
     gradescope["output"] = f"{correct} / {total} correct"
     ratio: float = correct / total
+    score: float
     if allOrNothing is not None:
-        threshold = float(allOrNothing)
+        threshold = allOrNothing
         if ratio >= threshold:
-            gradescope["score"] = 100
+            score = 100
         else:
-            gradescope["score"] = 0
+            score = 0
     else:
-        gradescope["score"] = 100 * correct / total
+        score = 100 * correct / total
+    print(f"Raw score: {score}")
+    if minutes_late > 0:
+        print(f"Late penalty: {minutes_late}")
+        score = max(0, score - minutes_late)
+    if previous_score > score:
+        print(f"Keeping previous score: {previous_score}")
+        score = previous_score
+    gradescope["score"] = score
 
     j = json.dumps(gradescope, indent=2)
     with open(outfile, "w") as f:
