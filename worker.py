@@ -113,7 +113,7 @@ def evaluate_test(
         res = False
     return (
         (
-            result.exc is None
+            type(result.exc).__name__ == type(test["error"]).__name__
             and res
             and result.out.getvalue() == test["stdout"]
             and result.err.getvalue() == test["stderr"]

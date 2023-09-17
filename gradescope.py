@@ -45,8 +45,14 @@ def do_gradescope(
         score = 100 * correct / total
     print(f"Raw score: {score}")
     if minutes_late > 0:
-        print(f"Late penalty: {minutes_late}")
-        score = max(0, score - minutes_late)
+        penalty = minutes_late
+        print(f"Late penalty: {penalty}")
+        score = max(0, score - penalty)
+    elif minutes_late < 0:
+        bonus = -minutes_late / 1000.0
+        bonus = min(10, bonus)
+        print(f"Early bonus: {bonus}")
+        score = score + bonus
     if previous_score > score:
         print(f"Keeping previous score: {previous_score}")
         score = previous_score
