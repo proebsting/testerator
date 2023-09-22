@@ -141,7 +141,7 @@ def run(
             if name is not None and test["file"] != name:
                 continue
             if verbose:
-                pprint.pprint(test)
+                pprint.pprint(test, indent=1)
             passed: bool
             result: TestResult
             passed, result = evaluate_test(test, verbose, crash)
