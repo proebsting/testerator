@@ -204,3 +204,13 @@ def create(args: argparse.Namespace) -> None:
         print(f"Writing output.  {len(outputs)} tests")
     with open(args.output, "wb") as f:
         pickle.dump(outputs, f)
+
+
+def dump_pickles(inputs: list[str], name: Optional[str]):
+    for filename in inputs:
+        with open(filename, "rb") as f:
+            tests: list[dict[str, Any]] = pickle.load(f)
+        test: dict[str, Any]
+        for test in tests:
+            if name is None or test["file"] == name:
+                pprint.pprint(test, indent=1)

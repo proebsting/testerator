@@ -2,12 +2,16 @@ import argparse
 import pprint
 from typing import Any, Optional
 
-from .worker import create, run, TestResult
+from .worker import create, run, TestResult, dump_pickles
 
 
 def main():
     args = parse_args()
     match args.command:
+        case "dump":
+            inputs: list[str] = args.input
+            name: Optional[str] = args.name
+            dump_pickles(inputs, name)
         case "create":
             create(args)
         case "run":
@@ -29,6 +33,12 @@ def main():
 def parse_args():
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command", required=True)
+
+    dump = subparsers.add_parser("dump", help="Dump test pickles")
+    dump.add_argument("input", nargs="+", help="input test pickle file(s)")
+    dump.add_argument(
+        "--name", type=str, default=None, help="limit to a specific test"
+    )
 
     create = subparsers.add_parser("create", help="create a test pickle")
     create.add_argument("input", type=str, nargs="+", help="input file(s)")
