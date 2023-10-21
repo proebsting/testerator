@@ -158,7 +158,7 @@ def run(
                 print(f"passed: {passed}")
                 print_result(result)
                 print("-----")
-            if not passed and diff:
+            elif not passed and diff:
                 print_diff_result(result, test)
     return all
 
