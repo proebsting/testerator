@@ -6,6 +6,7 @@ import io
 import json
 import sys
 import importlib
+from .output_diff import compare_objects, print_diff
 from typing import (
     Callable,
     Tuple,
@@ -48,6 +49,18 @@ def print_test(result: TestResult, test: Dict):
         print(f"exception: {result.exc}")
 
 
+def print_diff_result(result: TestResult, test: Dict):
+    keys = ["output", "stdout", "stderr"]
+    correct = [test[k] for k in keys]
+    student = [result.retval, result.out.getvalue(), result.err.getvalue()]
+    diffs = [compare_objects(c, s) for c, s in zip(correct, student)]
+    for i in range(len(keys)):
+        if len(diffs[i]) <= 1:
+            continue
+        print(f"diff for {keys[i]}: ")
+        print_diff(diffs[i])
+
+
 def print_result(result: TestResult):
     print(f"actual return value:")
     pprint.pprint(result.retval)
@@ -81,9 +94,7 @@ def run_limited(fn: Runner, input: Any):
     return student
 
 
-def run_test(
-    input: str, funcname: str, verbose: bool, crash: bool
-) -> TestResult:
+def run_test(input: str, funcname: str, verbose: bool, crash: bool) -> TestResult:
     out = io.StringIO()
     err = io.StringIO()
     try:
@@ -98,13 +109,9 @@ def run_test(
         return TestResult(None, out, err, e)
 
 
-def evaluate_test(
-    test: Dict, verbose: bool, crash: bool
-) -> Tuple[bool, TestResult]:
+def evaluate_test(test: Dict, verbose: bool, crash: bool) -> Tuple[bool, TestResult]:
     compare = get_function(test["compare"])
-    result: TestResult = run_test(
-        test["input"], test["function"], verbose, crash
-    )
+    result: TestResult = run_test(test["input"], test["function"], verbose, crash)
     try:
         res = compare(result.retval, test["output"], crash)
     except Exception as e:
@@ -127,6 +134,7 @@ def run(
     verbose: bool,
     crash: bool,
     name: Optional[str] = None,
+    diff: bool = False,
 ) -> list[tuple[dict[str, Any], bool, TestResult]]:
     if verbose:
         print("Running tests")
@@ -150,12 +158,12 @@ def run(
                 print(f"passed: {passed}")
                 print_result(result)
                 print("-----")
+            elif not passed and diff:
+                print_diff_result(result, test)
     return all
 
 
-def process_test_inputs(
-    compare_name, fn_name, file_name, input: Any, verbose
-) -> Dict:
+def process_test_inputs(compare_name, fn_name, file_name, input: Any, verbose) -> Dict:
     result = run_test(input, fn_name, verbose, False)
     test = {
         "file": file_name,
