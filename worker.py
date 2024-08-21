@@ -81,9 +81,7 @@ def run_limited(fn: Runner, input: Any):
     return student
 
 
-def run_test(
-    input: str, funcname: str, verbose: bool, crash: bool
-) -> TestResult:
+def run_test(input: str, funcname: str, verbose: bool, crash: bool) -> TestResult:
     out = io.StringIO()
     err = io.StringIO()
     try:
@@ -100,26 +98,37 @@ def run_test(
 
 def evaluate_test(
     test: Dict, verbose: bool, crash: bool
-) -> Tuple[bool, TestResult]:
+) -> Tuple[bool, TestResult, list[str]]:
     compare = get_function(test["compare"])
-    result: TestResult = run_test(
-        test["input"], test["function"], verbose, crash
-    )
+    result: TestResult = run_test(test["input"], test["function"], verbose, crash)
+    notes: list[str] = []
     try:
         res = compare(result.retval, test["output"], crash)
     except Exception as e:
+        # print(e.__notes__)
         if crash:
             raise
         res = False
+        notes = [str(e)] + e.__notes__
+    if res:
+        res, notes = compare_text("stdout", result.out.getvalue(), test["stdout"])
+    if res:
+        res, notes = compare_text("stderr", result.err.getvalue(), test["stderr"])
     return (
-        (
-            type(result.exc).__name__ == type(test["error"]).__name__
-            and res
-            and result.out.getvalue() == test["stdout"]
-            and result.err.getvalue() == test["stderr"]
-        ),
+        (type(result.exc).__name__ == type(test["error"]).__name__ and res),
         result,
+        notes,
     )
+
+
+def compare_text(name: str, student: str, expected: str) -> tuple[bool, list[str]]:
+    if student != expected:
+        notes: List[str] = [
+            f"Expected {name}:\n{expected}",
+            f"Actual {name}:\n{student}",
+        ]
+        return False, notes
+    return True, []
 
 
 def run(
@@ -144,18 +153,22 @@ def run(
                 pprint.pprint(test, indent=1)
             passed: bool
             result: TestResult
-            passed, result = evaluate_test(test, verbose, crash)
+            notes: list[str]
+            passed, result, notes = evaluate_test(test, verbose, crash)
             all.append((test, passed, result))
             if verbose:
                 print(f"passed: {passed}")
                 print_result(result)
+                if notes:
+                    print("\n".join(notes))
                 print("-----")
+            elif not passed:
+                print("--- Failed test:", test["file"])
+                print("\n".join(notes))
     return all
 
 
-def process_test_inputs(
-    compare_name, fn_name, file_name, input: Any, verbose
-) -> Dict:
+def process_test_inputs(compare_name, fn_name, file_name, input: Any, verbose) -> Dict:
     result = run_test(input, fn_name, verbose, False)
     test = {
         "file": file_name,
