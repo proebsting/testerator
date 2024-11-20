@@ -102,6 +102,20 @@ def evaluate_test(
     compare = get_function(test["compare"])
     result: TestResult = run_test(test["input"], test["function"], verbose, crash)
     notes: list[str] = []
+    if result.exc is not None or test["error"] is not None:
+        res = type(result.exc).__name__ == type(test["error"]).__name__
+        if not res:
+            if result.exc is not None:
+                import traceback
+
+                tb = traceback.extract_tb(result.exc.__traceback__)
+                final = tb[-1]
+                summary = f"Exception: [{final.filename}:{final.lineno}] {result.exc}\n{final.line}"
+                notes.append(summary)
+            notes.append(
+                f"Expected exception {type(test['error']).__name__}, but got {type(result.exc).__name__}"
+            )
+        return res, result, notes
     try:
         res = compare(result.retval, test["output"], crash)
     except Exception as e:
@@ -114,11 +128,7 @@ def evaluate_test(
         res, notes = compare_text("stdout", result.out.getvalue(), test["stdout"])
     if res:
         res, notes = compare_text("stderr", result.err.getvalue(), test["stderr"])
-    return (
-        (type(result.exc).__name__ == type(test["error"]).__name__ and res),
-        result,
-        notes,
-    )
+    return (res, result, notes)
 
 
 def compare_text(name: str, student: str, expected: str) -> tuple[bool, list[str]]:
